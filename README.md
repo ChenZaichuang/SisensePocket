@@ -1,4 +1,4 @@
-# salesforce_show_api_name
+# Sisense Pocket
 This repo is a chrome extension to provide extended features in sisense, currently this plugins provide user/group info download, cube build history download, cube permission download, cube details display, more features will be added in later release.
 
 #### How to use it
