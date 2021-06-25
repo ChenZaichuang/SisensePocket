@@ -1,6 +1,6 @@
 {
   "name": "Sisense Pocket",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "manifest_version": 2,
   "homepage_url": "https://github.com/ChenZaichuang/SisensePocket",
   "description": "Show cube/dashboard details with one click",
@@ -40,6 +40,7 @@
   "permissions": [
     "activeTab",
     "cookies",
-    "https://*.sisense.com/app/data/"
+    "https://*.sisense.com/app/data/",
+    "https://*.sisense.com/app/main#/dashboards/*"
   ]
 }

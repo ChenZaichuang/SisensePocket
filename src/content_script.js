@@ -30,7 +30,7 @@ function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
-    a.className = "show-cube-details-plugin";
+    a.className = "sisense-pocket-plugin";
     a.href = url;
     a.download = filename || 'download';
 
@@ -94,21 +94,78 @@ function provideBuildHistoryDownload(cubeBuildList) {
 
 }
 
+function provideDashboardPermissionDownload(dashboardName, dashboardPermission, userEmailInfoMap) {
+    let permissionList = [];
+    for (let permission of dashboardPermission){
+        if (permission.type === 'user') {
+            let userInfo = userEmailInfoMap[permission.user.userName];
+            permissionList.push([dashboardName, '-', `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permission.rule ? permission.rule : 'owner']);
+        } else if (permission.type === 'group') {
+            let groupName = permission.group.name;
+            for (let user of permission.group.users) {
+                let userInfo = userEmailInfoMap[user.userName];
+                permissionList.push([dashboardName, groupName, `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permission.rule ? permission.rule : 'owner']);
+            }
+        }
+    }
+
+    let permissionOrder = {
+        'view': 1,
+        'edit': 2,
+        'owner': 3
+    }
+
+    permissionList.sort(function(a, b){
+        if (a[1] < b[1]) {
+            return -1;
+        }else if (a[1] > b[1]) {
+            return 1;
+        }
+
+        if (permissionOrder[a[4]] < permissionOrder[b[4]]) {
+            return 1;
+        }else if (permissionOrder[a[4]] > permissionOrder[b[4]]) {
+            return -1;
+        }
+
+        return 0;
+    });
+
+    permissionList.unshift(['Dashboard Name', 'Group Name', 'User Name', 'User Email', 'Permission']);
+
+    const blob = new Blob(
+        [permissionList.join('\n')],
+        { type: 'text/csv' }
+    );
+
+    const downloadLink = downloadBlob(blob, `Dashboard Permission.csv`);
+
+    downloadLink.title = 'Export Dashboard Permission as CSV';
+
+    downloadLink.textContent = 'Download Dashboard Permission';
+
+    downloadLink.style.marginRight = '12px';
+    downloadLink.style.padding = '15px 0';
+
+    let dashboardTileElement = document.getElementsByClassName('prism-toolbar__section prism-toolbar__section--left')[0];
+    dashboardTileElement.insertBefore(downloadLink, dashboardTileElement.childNodes[0]);
+}
+
 
 function provideUserGroupDownload(userInfoList, groupInfoMap) {
 
-    let userList = [['User Name', 'User Email', 'Last Login', 'Last Activity', 'Group Name'].join(',')];
+    let userList = [['User Name', 'User Email', 'Group Name'].join(',')];
     for (let userInfo of userInfoList){
         if(!userInfo.groups) {
-            userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `${userInfo.lastLogin ? userInfo.lastLogin : ''}`, `${userInfo.lastActivity ? userInfo.lastActivity : ''}`, '-'].join(','))
+            userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, '-'].join(','))
             continue;
         }
         for (let groupId of userInfo.groups) {
             if (! groupInfoMap[groupId]) {
-                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `${userInfo.lastLogin ? userInfo.lastLogin : ''}`, `${userInfo.lastActivity ? userInfo.lastActivity : ''}`, `Unknown Group: ${groupId}`].join(','))
+                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `Unknown Group: ${groupId}`].join(','))
                 // console.log(`Invalid Group Id: ${userInfo._id} ${groupId}`)
             } else {
-                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `${userInfo.lastLogin ? userInfo.lastLogin : ''}`, `${userInfo.lastActivity ? userInfo.lastActivity : ''}`, `${groupInfoMap[groupId].name}`].join(','))
+                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `${groupInfoMap[groupId].name}`].join(','))
             }
         }
     }
@@ -133,7 +190,7 @@ function appendSpanToElement(el, content, row) {
     let spanElement = document.createElement('span');
     let numOfEachRow = 3;
     spanElement.textContent = content;
-    spanElement.className = "show-cube-details-plugin";
+    spanElement.className = "sisense-pocket-plugin";
     spanElement.style = `position: absolute;top: ${parseInt(row / numOfEachRow) * 2}rem;left: ${33 + (row % numOfEachRow) * parseInt(65 / numOfEachRow)}rem`;
     el.appendChild(spanElement);
 }
@@ -153,14 +210,13 @@ function appendBlobToElement(el, content, row) {
 
     downloadLink.textContent = 'Download Cube Permissions';
 
-
     downloadLink.style = `position: absolute;top: ${parseInt(row / numOfEachRow) * 2}rem;left: ${33 + (row % numOfEachRow) * parseInt(65 / numOfEachRow)}rem;z-index: 100`;
 
     el.appendChild(downloadLink);
 }
 
 
-function showCubeDetails(cubeElement, cubeInfoMap, userInfoMap, groupInfoMap, groupUserMap) {
+function showOneCubeDetails(cubeElement, cubeInfoMap, userInfoMap, groupInfoMap, groupUserMap) {
     let cubeName = cubeElement.childNodes[0].childNodes[1].textContent;
     let cubeInfo = cubeInfoMap[cubeName];
     let userInfo = userInfoMap[cubeInfo.creator];
@@ -200,84 +256,121 @@ function showCubeDetails(cubeElement, cubeInfoMap, userInfoMap, groupInfoMap, gr
     appendBlobToElement(cubeElement.childNodes[0], permissionList.join('\n'), row++);
 }
 
-async function startCubePocket(host, authCookie) {
+async function turnOnSisensePocketOnDataPage(host, authCookie) {
+    let cubeLists = document.getElementsByClassName('CubeList__cubeList___DhtDs');
+    for (let cubes of cubeLists) {
+        cubes.style.display = 'contents';
+    }
 
-    window.sisensePocket = window.sisensePocket || {};
-    window.sisensePocket.isOn = window.sisensePocket.isOn === undefined ? false : !window.sisensePocket.isOn;
+    let [cubeInfoList, userInfoList, groupInfoList, cubeBuildList] = await Promise.all(
+        [sendGetRequest(host, 'api/v1/elasticubes/getElasticubesWithMetadata', authCookie),
+            sendGetRequest(host, 'api/v1/users', authCookie),
+            sendGetRequest(host, 'api/v1/groups', authCookie),
+            sendGetRequest(host, 'api/v2/builds', authCookie),
+            sleep(500)]
+    );
 
-    if (!window.sisensePocket.isOn) {
+    let cubeInfoMap = {};
+    for (let cubeInfo of cubeInfoList) {
+        cubeInfoMap[cubeInfo.title] = cubeInfo;
+    }
 
-        let cubeLists = document.getElementsByClassName('CubeList__cubeList___DhtDs');
-        for (let cubes of cubeLists) {
-            cubes.style.display = 'contents';
+    let groupInfoMap = {};
+    for (let groupInfo of groupInfoList) {
+        groupInfoMap[groupInfo._id] = groupInfo;
+    }
+
+    let groupUserMap = {};
+    let userInfoMap = {};
+    for (let userInfo of userInfoList) {
+        userInfoMap[userInfo._id] = userInfo;
+        if(!userInfo.groups) {
+            continue;
         }
-
-        let [cubeInfoList, userInfoList, groupInfoList, cubeBuildList] = await Promise.all(
-            [sendGetRequest(host, 'api/v1/elasticubes/getElasticubesWithMetadata', authCookie),
-                    sendGetRequest(host, 'api/v1/users', authCookie),
-                    sendGetRequest(host, 'api/v1/groups', authCookie),
-                    sendGetRequest(host, 'api/v2/builds', authCookie),
-                    sleep(500)]
-        );
-
-        let cubeInfoMap = {};
-        for (let cubeInfo of cubeInfoList) {
-            cubeInfoMap[cubeInfo.title] = cubeInfo;
-        }
-
-        let groupInfoMap = {};
-        for (let groupInfo of groupInfoList) {
-            groupInfoMap[groupInfo._id] = groupInfo;
-        }
-
-        let groupUserMap = {};
-        let userInfoMap = {};
-        for (let userInfo of userInfoList) {
-            userInfoMap[userInfo._id] = userInfo;
-            if(!userInfo.groups) {
-                continue;
-            }
-            for (let groupId of userInfo.groups) {
-                if(groupUserMap.hasOwnProperty(groupId)) {
-                    groupUserMap[groupId].push(userInfo._id);
-                } else {
-                    groupUserMap[groupId] = [userInfo._id];
-                }
-            }
-        }
-
-        for (let cubes of cubeLists) {
-            for (let cube of cubes.childNodes) {
-                cube.style.width='auto';
-                if(!cube.className.includes('CubeList__newCube___')){
-                    showCubeDetails(cube, cubeInfoMap, userInfoMap, groupInfoMap, groupUserMap);
-                }
-            }
-        }
-
-        provideBuildHistoryDownload(cubeBuildList);
-        provideUserGroupDownload(userInfoList, groupInfoMap);
-
-    } else {
-
-        for (let element of document.getElementsByClassName('show-cube-details-plugin')) {
-            element.remove();
-        }
-
-        await sleep(500);
-
-        for (let element of document.getElementsByClassName('show-cube-details-plugin')) {
-            element.remove();
-        }
-
-        let cubeLists = document.getElementsByClassName('CubeList__cubeList___DhtDs');
-        for (let cubes of cubeLists) {
-            cubes.style.removeProperty('display');
-            for (let cube of cubes.childNodes) {
-                cube.style.removeProperty('width');
+        for (let groupId of userInfo.groups) {
+            if(groupUserMap.hasOwnProperty(groupId)) {
+                groupUserMap[groupId].push(userInfo._id);
+            } else {
+                groupUserMap[groupId] = [userInfo._id];
             }
         }
     }
+
+    for (let cubes of cubeLists) {
+        for (let cube of cubes.childNodes) {
+            cube.style.width='auto';
+            if(!cube.className.includes('CubeList__newCube___')){
+                showOneCubeDetails(cube, cubeInfoMap, userInfoMap, groupInfoMap, groupUserMap);
+            }
+        }
+    }
+
+    provideBuildHistoryDownload(cubeBuildList);
+    provideUserGroupDownload(userInfoList, groupInfoMap);
+}
+
+async function turnOffSisensePocketOnDataPage() {
+    for (let element of document.getElementsByClassName('sisense-pocket-plugin')) {
+        element.remove();
+    }
+
+    await sleep(500);
+
+    for (let element of document.getElementsByClassName('sisense-pocket-plugin')) {
+        element.remove();
+    }
+
+    let cubeLists = document.getElementsByClassName('CubeList__cubeList___DhtDs');
+    for (let cubes of cubeLists) {
+        cubes.style.removeProperty('display');
+        for (let cube of cubes.childNodes) {
+            cube.style.removeProperty('width');
+        }
+    }
+}
+
+async function turnOnSisensePocketOnDashboardPage(host, authCookie, dashboardId) {
+    let [dashboardInfo, dashboardPermission, userInfoList] = await Promise.all(
+        [sendGetRequest(host, `api/v1/dashboards/${dashboardId}`, authCookie),
+            sendGetRequest(host, `api/v1/dashboards/${dashboardId}/shares?expand=user(fields:userName),group.users(fields:userName)`, authCookie),
+            sendGetRequest(host, 'api/v1/users', authCookie),
+            sleep(500)]
+    );
+    let userEmailInfoMap = {};
+    for (let userInfo of userInfoList) {
+        userEmailInfoMap[userInfo.email] = userInfo;
+    }
+    let dashboardName = dashboardInfo.title;
+    await provideDashboardPermissionDownload(dashboardName, dashboardPermission, userEmailInfoMap);
+}
+
+async function turnOffSisensePocketOnDashboardPage() {
+    for (let element of document.getElementsByClassName('sisense-pocket-plugin')) {
+        element.remove();
+    }
+
+    await sleep(500);
+
+    for (let element of document.getElementsByClassName('sisense-pocket-plugin')) {
+        element.remove();
+    }
+}
+
+async function startCubePocket(host, authCookie) {
+
+    if (window.location.pathname === '/app/data' || window.location.pathname === '/app/data/') {
+        await turnOffSisensePocketOnDataPage();
+        await turnOnSisensePocketOnDataPage(host, authCookie);
+        return
+    }
+
+    let arr = /^#\/dashboards\/(\w+)$/g.exec(window.location.hash);
+    if(arr) {
+        let dashboardId = arr[1];
+        await turnOffSisensePocketOnDashboardPage();
+        await turnOnSisensePocketOnDashboardPage(host, authCookie, dashboardId);
+    }
+
 }
 
 chrome.runtime.onMessage.addListener(function (message) {
