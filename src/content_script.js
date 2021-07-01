@@ -138,7 +138,7 @@ function provideDashboardPermissionDownload(dashboardName, dashboardPermission, 
         { type: 'text/csv' }
     );
 
-    const downloadLink = downloadBlob(blob, `Dashboard Permission.csv`);
+    const downloadLink = downloadBlob(blob, `${dashboardName} Permission.csv`);
 
     downloadLink.title = 'Export Dashboard Permission as CSV';
 
@@ -196,7 +196,7 @@ function appendSpanToElement(el, content, row) {
 }
 
 
-function appendBlobToElement(el, content, row) {
+function appendBlobToElement(el, content, row, fileName) {
     let numOfEachRow = 3;
 
     const blob = new Blob(
@@ -204,7 +204,7 @@ function appendBlobToElement(el, content, row) {
         { type: 'text/csv' }
     );
 
-    const downloadLink = downloadBlob(blob, `Cube Permissions.csv`);
+    const downloadLink = downloadBlob(blob, fileName);
 
     downloadLink.title = 'Export Cube Permissions as CSV';
 
@@ -253,7 +253,7 @@ function showOneCubeDetails(cubeElement, cubeInfoMap, userInfoMap, groupInfoMap,
         }
     }
 
-    appendBlobToElement(cubeElement.childNodes[0], permissionList.join('\n'), row++);
+    appendBlobToElement(cubeElement.childNodes[0], permissionList.join('\n'), row++, `${cubeInfo.title} Permission.csv`);
 }
 
 async function turnOnSisensePocketOnDataPage(host, authCookie) {
