@@ -94,17 +94,17 @@ function provideBuildHistoryDownload(cubeBuildList) {
 
 }
 
-function provideDashboardPermissionDownload(dashboardName, dashboardPermission, userEmailInfoMap) {
+function provideDashboardPermissionDownload(dashboardName, dashboardPermission, userNameInfoMap) {
     let permissionList = [];
     for (let permission of dashboardPermission){
         if (permission.type === 'user') {
-            let userInfo = userEmailInfoMap[permission.user.userName];
-            permissionList.push([dashboardName, '-', `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permission.rule ? permission.rule : 'owner']);
+            let userInfo = userNameInfoMap[permission.user.userName.trim()];
+            permissionList.push([dashboardName, '-', `${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, userInfo.email.trim(), permission.rule ? permission.rule.trim() : 'owner']);
         } else if (permission.type === 'group') {
-            let groupName = permission.group.name;
+            let groupName = permission.group.name.trim();
             for (let user of permission.group.users) {
-                let userInfo = userEmailInfoMap[user.userName];
-                permissionList.push([dashboardName, groupName, `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permission.rule ? permission.rule : 'owner']);
+                let userInfo = userNameInfoMap[user.userName.trim()];
+                permissionList.push([dashboardName, groupName, `${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, userInfo.email.trim(), permission.rule ? permission.rule.trim() : 'owner']);
             }
         }
     }
@@ -157,15 +157,15 @@ function provideUserGroupDownload(userInfoList, groupInfoMap) {
     let userList = [['User Name', 'User Email', 'Group Name'].join(',')];
     for (let userInfo of userInfoList){
         if(!userInfo.groups) {
-            userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, '-'].join(','))
+            userList.push([`${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, `${userInfo.email.trim()}`, '-'].join(','))
             continue;
         }
         for (let groupId of userInfo.groups) {
             if (! groupInfoMap[groupId]) {
-                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `Unknown Group: ${groupId}`].join(','))
+                userList.push([`${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, `${userInfo.email.trim()}`, `Unknown Group: ${groupId}`].join(','))
                 // console.log(`Invalid Group Id: ${userInfo._id} ${groupId}`)
             } else {
-                userList.push([`${userInfo.firstName} ${userInfo.lastName}`, `${userInfo.email}`, `${groupInfoMap[groupId].name}`].join(','))
+                userList.push([`${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, `${userInfo.email.trim()}`, `${groupInfoMap[groupId].name.trim()}`].join(','))
             }
         }
     }
@@ -240,14 +240,14 @@ function showOneCubeDetails(cubeElement, cubeInfoMap, userInfoMap, groupInfoMap,
         for (let entity of cubeInfo.shares){
             if (entity.type === 'user') {
                 let userInfo = userInfoMap[entity.partyId];
-                permissionList.push([cubeInfo.title, '-', `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permissionMap[entity.permission]]);
+                permissionList.push([cubeInfo.title.trim(), '-', `${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, userInfo.email.trim(), permissionMap[entity.permission.trim()]]);
             } else if (entity.type === 'group') {
                 if(! groupUserMap[entity.partyId]) {
                     continue;
                 }
                 for (let userId of groupUserMap[entity.partyId]) {
                     let userInfo = userInfoMap[userId];
-                    permissionList.push([cubeInfo.title, groupInfoMap[entity.partyId].name, `${userInfo.firstName} ${userInfo.lastName}`, userInfo.email, permissionMap[entity.permission]]);
+                    permissionList.push([cubeInfo.title.trim(), groupInfoMap[entity.partyId].name.trim(), `${userInfo.firstName ? userInfo.firstName.trim() : ''}${userInfo.lastName ? ' ' + userInfo.lastName.trim() : ''}`, userInfo.email.trim(), permissionMap[entity.permission.trim()]]);
                 }
             }
         }
@@ -336,12 +336,12 @@ async function turnOnSisensePocketOnDashboardPage(host, authCookie, dashboardId)
             sendGetRequest(host, 'api/v1/users', authCookie),
             sleep(500)]
     );
-    let userEmailInfoMap = {};
+    let userNameInfoMap = {};
     for (let userInfo of userInfoList) {
-        userEmailInfoMap[userInfo.email] = userInfo;
+        userNameInfoMap[userInfo.userName.trim()] = userInfo;
     }
-    let dashboardName = dashboardInfo.title;
-    await provideDashboardPermissionDownload(dashboardName, dashboardPermission, userEmailInfoMap);
+    let dashboardName = dashboardInfo.title.trim();
+    await provideDashboardPermissionDownload(dashboardName, dashboardPermission, userNameInfoMap);
 }
 
 async function turnOffSisensePocketOnDashboardPage() {
