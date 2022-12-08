@@ -1,13 +1,11 @@
 {
   "name": "Sisense Pocket",
-  "version": "0.0.4",
-  "manifest_version": 2,
+  "version": "0.0.5",
+  "manifest_version": 3,
   "homepage_url": "https://github.com/ChenZaichuang/SisensePocket",
   "description": "Show cube/dashboard details with one click",
   "background": {
-    "scripts": [
-      "background.js"
-    ]
+    "service_worker": "service_worker.js"
   },
   "content_scripts": [
     {
@@ -21,14 +19,17 @@
       "all_frames": false
     }
   ],
-  "icons":
-  {
+  "icons": {
     "16": "images/16.png",
     "32": "images/32.png",
     "48": "images/48.png",
     "128": "images/128.png"
   },
-  "browser_action": {
+  "permissions": [
+    "activeTab",
+    "cookies"
+  ],
+  "action": {
     "default_icon": {
       "16": "images/16.png",
       "32": "images/32.png",
@@ -37,9 +38,8 @@
     },
     "default_title": "Sisense Pocket"
   },
-  "permissions": [
-    "activeTab",
-    "cookies",
+  "content_security_policy": {},
+  "host_permissions": [
     "https://*.sisense.com/app/data/",
     "https://*.sisense.com/app/main#/dashboards/*"
   ]

@@ -20,6 +20,6 @@ async function startCubePocket(tab) {
     });
 }
 
-chrome.browserAction.onClicked.addListener(function (tab) {
+chrome.action.onClicked.addListener(function (tab) {
     startCubePocket(tab).then(res => console.log(res)).catch(res => console.log(res));
 });
