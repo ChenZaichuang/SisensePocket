@@ -1,6 +1,6 @@
 {
   "name": "Sisense Pocket",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "manifest_version": 3,
   "homepage_url": "https://github.com/ChenZaichuang/SisensePocket",
   "description": "Show cube/dashboard details with one click",
@@ -13,6 +13,10 @@
         "https://*.sisense.com/*"
       ],
       "js": [
+        "module/constant.js",
+        "module/sisense_client.js",
+        "module/sisense_data.js",
+        "module/sisense_dom.js",
         "content_script.js"
       ],
       "run_at": "document_end",
