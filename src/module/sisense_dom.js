@@ -161,7 +161,7 @@ function showCubeDetails(parentNode, cubeInfoMap, userGroupManager) {
     for (const [cubeName, cubeInfo] of Object.entries(cubeInfoMap)) {
         let cubeCreator = userGroupManager.getUserById(cubeInfo.creator);
 
-        let permissionList = [['Cube Name', 'Group Name', 'User Name', 'User Email', 'Permission'].join(',')];
+        let permissionList = [['Cube Name', 'Group Id', 'Group Name', 'User Id', 'User Name', 'User Email', 'Permission'].join(',')];
 
         let permissionMap = {'a': 'Can View Dashboards', 'r': 'Can Query', 'w': 'Can Edit'}
 
@@ -169,12 +169,12 @@ function showCubeDetails(parentNode, cubeInfoMap, userGroupManager) {
             for (let entity of cubeInfo.shares){
                 if (entity.type === 'user') {
                     let userInfo = userGroupManager.getUserById(entity.partyId);
-                    permissionList.push([cubeInfo.title, '-', `${userInfo.firstName ? userInfo.firstName : ''}${userInfo.lastName ? ' ' + userInfo.lastName : ''}`, userInfo.email, permissionMap[entity.permission]]);
+                    permissionList.push([cubeInfo.title, '-', '-', userInfo._id, `${userInfo.firstName ? userInfo.firstName : ''}${userInfo.lastName ? ' ' + userInfo.lastName : ''}`, userInfo.email, permissionMap[entity.permission]]);
                 } else if (entity.type === 'group') {
                     const groupId = entity.partyId;
                     const group = userGroupManager.getGroupById(groupId);
                     for (let userInfo of userGroupManager.getUsersOfGroup(groupId)) {
-                        permissionList.push([cubeInfo.title, group.name, `${userInfo.firstName ? userInfo.firstName : ''}${userInfo.lastName ? ' ' + userInfo.lastName : ''}`, userInfo.email, permissionMap[entity.permission]]);
+                        permissionList.push([cubeInfo.title, groupId, group.name, userInfo._id, `${userInfo.firstName ? userInfo.firstName : ''}${userInfo.lastName ? ' ' + userInfo.lastName : ''}`, userInfo.email, permissionMap[entity.permission]]);
                     }
                 }
             }

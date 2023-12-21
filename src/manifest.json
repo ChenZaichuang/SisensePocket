@@ -1,6 +1,6 @@
 {
   "name": "Sisense Pocket",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "manifest_version": 3,
   "homepage_url": "https://github.com/ChenZaichuang/SisensePocket",
   "description": "Show cube/dashboard details with one click",
